@@ -7,7 +7,11 @@ import (
 	"strconv"
 )
 
-var books []models.Book
+var books = []models.Book{
+	{ID: "1", Title: "In Search of Lost Time", Author: "Marcel Proust", Quantity: 2},
+	{ID: "2", Title: "The Great Gatsby", Author: "F. Scott Fitzgerald", Quantity: 5},
+	{ID: "3", Title: "War and Peace", Author: "Leo Tolstoy", Quantity: 6},
+}
 
 type BookRepository interface {
 	GetAllBooks() ([]models.Book, error)
@@ -21,12 +25,6 @@ type inMemoryBookRepository struct {
 }
 
 func NewInMemoryBookRepository() *inMemoryBookRepository {
-	// Initialize books if needed
-	books = []models.Book{
-		{ID: "1", Title: "In Search of Lost Time", Author: "Marcel Proust", Quantity: 2},
-		{ID: "2", Title: "The Great Gatsby", Author: "F. Scott Fitzgerald", Quantity: 5},
-		{ID: "3", Title: "War and Peace", Author: "Leo Tolstoy", Quantity: 6},
-	}
 	return &inMemoryBookRepository{}
 }
 
