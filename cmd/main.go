@@ -12,7 +12,7 @@ import (
 
 func main() {
 	// Initialize the repository
-	bookRepository := repository.NewBookRepository()
+	bookRepository := repository.NewInMemoryBookRepository()
 
 	// Initialize the usecase
 	bookUseCase := usecase.NewBookUseCase(bookRepository)
@@ -25,6 +25,10 @@ func main() {
 	// Initialize the Gin router
 	router := gin.Default()
 	router.GET("/books", httpHandler.GetBooks)
+	router.POST("/books", httpHandler.AddBook)
+	router.GET("/books/:id", httpHandler.GetBookById)
+	router.PUT("/books/:id", httpHandler.UpdateBook)
+	router.DELETE("/books/:id", httpHandler.DeleteBook)
 
 	// Run the server
 	router.Run("localhost:8080")
