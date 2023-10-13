@@ -13,7 +13,7 @@ import (
 
 func main() {
 	// Load configuration
-	config, err := config.LoadConfig("../.env")
+	config, err := config.LoadConfig()
 	if err != nil {
 		fmt.Println("Failed to load config:", err)
 		return

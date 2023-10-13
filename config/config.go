@@ -15,10 +15,10 @@ type Config struct {
 	DBPort     string
 }
 
-func LoadConfig(configFilePath string) (Config, error) {
+func LoadConfig() (Config, error) {
 	var config Config
 
-	viper.SetConfigFile(configFilePath)
+	viper.SetConfigFile("../.env")
 	err := viper.ReadInConfig()
 	if err != nil {
 		return config, fmt.Errorf("failed to read config file: %v", err)
