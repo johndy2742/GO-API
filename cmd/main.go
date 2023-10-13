@@ -19,12 +19,8 @@ func main() {
 		return
 	}
 
-	// Construct the connection string
-	connectionString := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=%s host=%s port=%s",
-		config.DBUser, config.DBPassword, config.DBName, config.SSLMode, config.DBHost, config.DBPort)
-
 	// Connect to PostgreSQL
-	db, err := database.ConnectDB(connectionString)
+	db, err := database.ConnectDB(config)
 	if err != nil {
 		fmt.Println("Failed to connect to PostgreSQL:", err)
 		return
