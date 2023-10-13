@@ -1,57 +1,40 @@
 package main
 
 import (
+	"api/delivery"
+	"api/repository"
+	"api/usecase"
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/gin-gonic/gin"
-
-	"api/delivery"
-	"api/repository"
-	"api/usecase"
-
-	_ "github.com/lib/pq"
+	"github.com/spf13/viper"
 )
 
-type Config struct {
-	PGUser     string `json:"PG_USER"`
-	PGPassword string `json:"PG_PASSWORD"`
-	PGDBName   string `json:"PG_DBNAME"`
-}
-
-func loadConfig() (*Config, error) {
-	configFile, err := os.Open("../config/config.json")
-	if err != nil {
-		return nil, err
-	}
-	defer configFile.Close()
-
-	var config Config
-	decoder := json.NewDecoder(configFile)
-	err = decoder.Decode(&config)
-	if err != nil {
-		return nil, err
-	}
-
-	return &config, nil
-}
-
 func main() {
-	// Load configuration
-	config, err := loadConfig()
+	// Load configuration from environment variables using Viper
+	viper.SetConfigFile("../.env")
+	err := viper.ReadInConfig()
 	if err != nil {
-		fmt.Println("Failed to load configuration:", err)
+		fmt.Println("Failed to read .env file:", err)
 		return
 	}
+	viper.AutomaticEnv() // Automatically read from environment variables
 
-	// Construct the PostgreSQL connection string
-	connString := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=disable",
-		config.PGUser, config.PGPassword, config.PGDBName)
+	// Retrieve PostgreSQL configuration from environment variables
+	dbUser := viper.GetString("PG_USER")
+	dbPassword := viper.GetString("PG_PASSWORD")
+	dbName := viper.GetString("PG_DBNAME")
+	sslMode := viper.GetString("PG_SSLMODE")
 
-	// Connect to PostgreSQL
-	db, err := sql.Open("postgres", connString)
+	fmt.Println("SSL Mode:", os.Getenv("PG_SSLMODE"))
+
+	// Construct the connection string
+	connectionString := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=%s", dbUser, dbPassword, dbName, sslMode)
+
+	// Connect to PostgreSQL using configuration
+	db, err := sql.Open("postgres", connectionString)
 	if err != nil {
 		fmt.Println("Failed to connect to PostgreSQL:", err)
 		return
