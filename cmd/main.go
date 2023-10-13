@@ -1,18 +1,36 @@
-// main.go
-
 package main
 
 import (
+	"api/config"
+	"api/database"
 	"api/delivery"
 	"api/repository"
 	"api/usecase"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	// Initialize the repository
-	bookRepository := repository.NewInMemoryBookRepository()
+	// Load configuration
+	config, err := config.LoadConfig()
+	if err != nil {
+		fmt.Println("Failed to load config:", err)
+		return
+	}
+
+	// Connect to PostgreSQL
+	db, err := database.ConnectDB(config)
+	if err != nil {
+		fmt.Println("Failed to connect to PostgreSQL:", err)
+		return
+	}
+	defer db.Close()
+
+	fmt.Println("Successfully connected to the database")
+
+	// Initialize the PostgreSQL repository
+	bookRepository := repository.NewPostgreSQLBookRepository(db)
 
 	// Initialize the usecase
 	bookUseCase := usecase.NewBookUseCase(bookRepository)

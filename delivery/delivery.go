@@ -61,12 +61,22 @@ func (h *HTTPHandler) UpdateBook(c *gin.Context) {
 		return
 	}
 
-	// Update the book using the use case
-	book, err := h.BookUseCase.UpdateBook(id, &updatedBook)
+	// Check if the book exists
+	_, err := h.BookUseCase.GetBookById(id)
 	if err != nil {
 		c.IndentedJSON(http.StatusNotFound, gin.H{"message": "Book not found"})
 		return
 	}
+
+	// Update the book using the use case
+	book, err := h.BookUseCase.UpdateBook(id, &updatedBook)
+	if err != nil {
+		c.IndentedJSON(http.StatusInternalServerError, gin.H{"message": "Failed to update the book"})
+		return
+	}
+
+	// Include the book ID in the response
+	book.ID = id
 
 	c.IndentedJSON(http.StatusOK, gin.H{"message": "Book updated successfully", "book": book})
 }

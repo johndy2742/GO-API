@@ -1,2 +1,4 @@
 # Ignore tmp directory
 /cmd/tmp
+/config/config.json
+.env

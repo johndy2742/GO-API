@@ -2,15 +2,15 @@ package repository
 
 import (
 	"api/models"
+	"database/sql"
 	"errors"
 	"fmt"
-	"strconv"
+
+	_ "github.com/lib/pq"
 )
 
-var books = []models.Book{
-	{ID: "1", Title: "In Search of Lost Time", Author: "Marcel Proust", Quantity: 2},
-	{ID: "2", Title: "The Great Gatsby", Author: "F. Scott Fitzgerald", Quantity: 5},
-	{ID: "3", Title: "War and Peace", Author: "Leo Tolstoy", Quantity: 6},
+type PostgreSQLBookRepository struct {
+	db *sql.DB
 }
 
 type BookRepository interface {
@@ -21,55 +21,93 @@ type BookRepository interface {
 	DeleteBook(id string) error
 }
 
-type inMemoryBookRepository struct {
+// NewPostgreSQLBookRepository creates a new PostgreSQLBookRepository instance.
+func NewPostgreSQLBookRepository(db *sql.DB) *PostgreSQLBookRepository {
+	return &PostgreSQLBookRepository{db: db}
 }
 
-func NewInMemoryBookRepository() *inMemoryBookRepository {
-	return &inMemoryBookRepository{}
-}
+// GetAllBooks retrieves all books from the database.
+func (repo *PostgreSQLBookRepository) GetAllBooks() ([]models.Book, error) {
+	// Query to retrieve all books
+	rows, err := repo.db.Query("SELECT id, title, author, quantity FROM book")
+	if err != nil {
+		fmt.Println("Error querying the database:", err)
+		return nil, err
+	}
+	defer rows.Close()
 
-func (repo *inMemoryBookRepository) GetAllBooks() ([]models.Book, error) {
-	// Return the package-level books slice
+	var books []models.Book
+	for rows.Next() {
+		var book models.Book
+		if err := rows.Scan(&book.ID, &book.Title, &book.Author, &book.Quantity); err != nil {
+			fmt.Println("Error scanning rows:", err)
+			return nil, err
+		}
+		books = append(books, book)
+	}
+
+	if err := rows.Err(); err != nil {
+		fmt.Println("Error iterating through rows:", err)
+		return nil, err
+	}
+
+	fmt.Println("Retrieved books:", books)
+
 	return books, nil
 }
 
-func (repo *inMemoryBookRepository) AddBook(book *models.Book) error {
-	// Increment the book ID based on the number of existing books
-	book.ID = strconv.Itoa(len(books) + 1)
-
-	// Append the new book to the books slice
-	books = append(books, *book)
+// AddBook adds a new book to the database.
+func (repo *PostgreSQLBookRepository) AddBook(book *models.Book) error {
+	_, err := repo.db.Exec("INSERT INTO book (title, author, quantity) VALUES ($1, $2, $3)",
+		book.Title, book.Author, book.Quantity)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
-func (repo *inMemoryBookRepository) GetBookById(id string) (*models.Book, error) {
-	for _, book := range books {
-		if book.ID == id {
-			return &book, nil
-		}
+// GetBookById retrieves a book by its ID.
+func (repo *PostgreSQLBookRepository) GetBookById(id string) (*models.Book, error) {
+	var book models.Book
+	err := repo.db.QueryRow("SELECT id, title, author, quantity FROM book WHERE id = $1", id).
+		Scan(&book.ID, &book.Title, &book.Author, &book.Quantity)
+	if err == sql.ErrNoRows {
+		return nil, errors.New("book not found")
+	} else if err != nil {
+		return nil, err
 	}
-	return nil, errors.New("book not found")
+
+	return &book, nil
 }
 
-func (repo *inMemoryBookRepository) UpdateBook(id string, updatedBook *models.Book) error {
-	for i, book := range books {
-		if book.ID == id {
-			updatedBook.ID = book.ID
-			// Update the book details
-			books[i] = *updatedBook
-			return nil
-		}
+// UpdateBook updates an existing book in the database.
+func (repo *PostgreSQLBookRepository) UpdateBook(id string, updatedBook *models.Book) error {
+	_, err := repo.db.Exec("UPDATE book SET title = $1, author = $2, quantity = $3 WHERE id = $4",
+		updatedBook.Title, updatedBook.Author, updatedBook.Quantity, id)
+	if err != nil {
+		return err
 	}
-	return fmt.Errorf("book with ID %s not found", id)
+	return nil
 }
 
-func (repo *inMemoryBookRepository) DeleteBook(id string) error {
-	for i, book := range books {
-		if book.ID == id {
-			// Delete the book from the slice
-			books = append(books[:i], books[i+1:]...)
-			return nil
-		}
+// DeleteBook deletes a book by its ID.
+func (repo *PostgreSQLBookRepository) DeleteBook(id string) error {
+	// Check if the book exists
+	var count int
+	err := repo.db.QueryRow("SELECT COUNT(*) FROM book WHERE id = $1", id).Scan(&count)
+	if err != nil {
+		return err
 	}
-	return errors.New("book not found")
+
+	if count == 0 {
+		// Book with the provided ID doesn't exist
+		return errors.New("book not found")
+	}
+
+	_, err = repo.db.Exec("DELETE FROM book WHERE id = $1", id)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
