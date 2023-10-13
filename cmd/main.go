@@ -1,51 +1,35 @@
 package main
 
 import (
+	"api/config"
+	"api/database"
 	"api/delivery"
 	"api/repository"
 	"api/usecase"
-	"database/sql"
 	"fmt"
-	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/spf13/viper"
 )
 
 func main() {
-	// Load configuration from environment variables using Viper
-	viper.SetConfigFile("../.env")
-	err := viper.ReadInConfig()
+	// Load configuration
+	config, err := config.LoadConfig("../.env")
 	if err != nil {
-		fmt.Println("Failed to read .env file:", err)
+		fmt.Println("Failed to load config:", err)
 		return
 	}
-	viper.AutomaticEnv() // Automatically read from environment variables
-
-	// Retrieve PostgreSQL configuration from environment variables
-	dbUser := viper.GetString("PG_USER")
-	dbPassword := viper.GetString("PG_PASSWORD")
-	dbName := viper.GetString("PG_DBNAME")
-	sslMode := viper.GetString("PG_SSLMODE")
-
-	fmt.Println("SSL Mode:", os.Getenv("PG_SSLMODE"))
 
 	// Construct the connection string
-	connectionString := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=%s", dbUser, dbPassword, dbName, sslMode)
+	connectionString := fmt.Sprintf("user=%s password=%s dbname=%s sslmode=%s host=%s port=%s",
+		config.DBUser, config.DBPassword, config.DBName, config.SSLMode, config.DBHost, config.DBPort)
 
-	// Connect to PostgreSQL using configuration
-	db, err := sql.Open("postgres", connectionString)
+	// Connect to PostgreSQL
+	db, err := database.ConnectDB(connectionString)
 	if err != nil {
 		fmt.Println("Failed to connect to PostgreSQL:", err)
 		return
 	}
 	defer db.Close()
-
-	// Try to ping the database to check the connection
-	if err = db.Ping(); err != nil {
-		fmt.Println("Failed to ping the database:", err)
-		return
-	}
 
 	fmt.Println("Successfully connected to the database")
 
